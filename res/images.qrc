@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>airplane.png</file>
+        <file>yaw_scale.png</file>
+    </qresource>
+</RCC>
