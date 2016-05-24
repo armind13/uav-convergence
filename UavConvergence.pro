@@ -16,13 +16,15 @@ TEMPLATE = app
 SOURCES += main.cpp\
         MainWindow.cpp \
     DataModel.cpp \
-    MainPresenter.cpp
+    MainPresenter.cpp \
+    ConvergenceCalculator.cpp
 
 HEADERS  += MainWindow.h \
     DataModel.h \
     Telemetry.h \
     MainPresenter.h \
-    ITelemetryViewer.h
+    ITelemetryViewer.h \
+    ConvergenceCalculator.h
 
 FORMS    += MainWindow.ui
 

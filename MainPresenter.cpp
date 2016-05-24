@@ -30,19 +30,18 @@ void MainPresenter::timerEvent(QTimerEvent* event)
         return;
     }
     Telemetry telemetry;
+    Telemetry convergenceTelemetry;
     int progress(0);
     model->getNextTelemetry(telemetry, progress);
-    view->showTelemetry(telemetry);
+    model->getConvergenceTelemetry(convergenceTelemetry);
+    view->showTelemetry(telemetry, convergenceTelemetry);
     view->showProgress(progress);
 }
 
 void MainPresenter::loadTelemetry(const QString& filePath)
 {
     view->setEnabledFileLoading(false);
-    model->loadTelemetry(filePath);
-    double minLat, maxLat, minLon, maxLon;
-    model->getMapLimits(minLat, maxLat, minLon, maxLon);
-    view->setMapLimits(minLat, maxLat, minLon, maxLon);
+    model->loadTelemetry(filePath);    
 }
 
 void MainPresenter::notifyAboutProgress(int progress)

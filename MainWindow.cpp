@@ -18,14 +18,7 @@ MainWindow::MainWindow(QWidget* parent) :
     ,airplanePixmap()
     ,yawScalePixmap()
     ,isReachedDistinguish(false)
-    ,convergenceTelemetry()
-    ,uavCoords()
-    ,minLatitude(0.0)
-    ,maxLatitude(100.0)
-    ,minLongitude(0.0)
-    ,maxLongitude(100.0)
-    ,ratioHeight(1.0)
-    ,ratioWidth(1.0)
+    ,convergenceTelemetries()
 {
     ui->setupUi(this);
     model = new DataModel(this);
@@ -49,24 +42,25 @@ void MainWindow::setEnabledStopPlayingTelemetry(bool enable)
     ui->stopButton->setEnabled(enable);
 }
 
-void MainWindow::showTelemetry(const Telemetry& telemetry)
+void MainWindow::showTelemetry(const Telemetry& telemetry, const Telemetry& convergenceTelemetry)
 {
     this->telemetry = telemetry;
-    QPointF point(telemetry.latitude, telemetry.longitude);
-    uavCoords.push_back(point);
-    if (telemetry.isConvergenceDataExist)
+    if (convergenceTelemetry.isConvergenceDataExist)
     {
-        convergenceTelemetry.push_back(telemetry);
-        if (convergenceTelemetry.size() > 20)
+        if (convergenceTelemetry.packetId >= 0)
         {
-            float delta = qAbs(convergenceTelemetry.first().magneticYaw
-                               - convergenceTelemetry.last().magneticYaw);
+            convergenceTelemetries.push_back(convergenceTelemetry);
+        }
+        if (convergenceTelemetries.size() > 20)
+        {
+            float delta = qAbs(convergenceTelemetries.first().magneticYaw
+                               - convergenceTelemetries.last().magneticYaw);
             const float distinguishValue = 15.0f;
             bool minimalDistinguish = delta < distinguishValue;
             if ( ! minimalDistinguish)
             {
-                float less = convergenceTelemetry.first().magneticYaw   ;
-                float more = convergenceTelemetry.last().magneticYaw;
+                float less = convergenceTelemetries.first().magneticYaw;
+                float more = convergenceTelemetries.last().magneticYaw;
                 if (less > more)
                 {
                     std::swap(less, more);
@@ -77,7 +71,7 @@ void MainWindow::showTelemetry(const Telemetry& telemetry)
             }
             if (minimalDistinguish)
             {
-                convergenceTelemetry.pop_front();
+                convergenceTelemetries.pop_front();
             }
         }
     }
@@ -87,15 +81,6 @@ void MainWindow::showTelemetry(const Telemetry& telemetry)
 void MainWindow::showProgress(int progress)
 {
     ui->progressBar->setValue(progress);
-}
-
-void MainWindow::setMapLimits(double minLatitude, double maxLatitude, double minLongitude, double maxLongitude)
-{
-    this->minLatitude = minLatitude;
-    this->maxLatitude = maxLatitude;
-    this->minLongitude = minLongitude;
-    this->maxLongitude = maxLongitude;
-    calculateRatios();
 }
 
 MainWindow::~MainWindow()
@@ -113,20 +98,12 @@ void MainWindow::paintEvent(QPaintEvent* event)
     drawYawScale(painter, drawingArea.center());
     drawAirplane(painter, drawingArea.center());
     drawYaw(painter, drawingArea.center(), yawScalePixmap.width() / 2.0);
-    drawTrack(painter);
-}
-
-void MainWindow::calculateRatios()
-{
-    int sideLength = qMin(ui->mapArea->geometry().width(), ui->mapArea->geometry().height());
-    ratioHeight = sideLength / (maxLatitude - minLatitude);
-    ratioWidth = sideLength / (maxLongitude- minLongitude);
+    drawConvergenceSpeed(painter, drawingArea.center(), yawScalePixmap.width() / 2.0);
 }
 
 void MainWindow::resizeEvent(QResizeEvent* event)
 {
     QMainWindow::resizeEvent(event);
-    calculateRatios();
 }
 
 void MainWindow::on_loadButton_clicked()
@@ -168,7 +145,7 @@ void MainWindow::drawAirplane(QPainter& painter, const QPointF& center)
 {
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     painter.translate(center);
-    painter.rotate(telemetry.magneticYaw);
+    painter.rotate(telemetry.yaw);
     painter.drawPixmap(QPointF(-airplanePixmap.width() / 2.0, -airplanePixmap.height() / 2.0),
                         airplanePixmap);
     painter.resetTransform();
@@ -187,7 +164,7 @@ void MainWindow::drawYaw(QPainter& painter, const QPointF& center, qreal radius)
 
 void MainWindow::drawConvergenceSpeed(QPainter& painter, const QPointF& center, qreal radius)
 {
-    if (convergenceTelemetry.size() < 2)
+    if (convergenceTelemetries.size() < 2)
     {
         return;
     }
@@ -198,7 +175,7 @@ void MainWindow::drawConvergenceSpeed(QPainter& painter, const QPointF& center, 
     QPen positivePen(Qt::green, 2);
     QPen negativePen(Qt::red, 2);
     painter.setPen(positivePen);
-    foreach (auto telemetry, convergenceTelemetry)
+    foreach (auto telemetry, convergenceTelemetries)
     {
         qreal length = telemetry.convergenceRatio * radius;
         QPointF end(center.x() + cos(qDegreesToRadians(telemetry.magneticYaw)) * length,
@@ -223,35 +200,45 @@ void MainWindow::drawConvergenceSpeed(QPainter& painter, const QPointF& center, 
     painter.restore();
 }
 
-void MainWindow::drawTrack(QPainter& painter)
-{
-    QList<QPointF> screenPoints;
-    QPoint nullPoint = ui->mapArea->geometry().bottomLeft();
-    for (int i = 0; i < uavCoords.count(); ++i)
-    {
-        QPointF point(nullPoint.y() - ratioWidth * uavCoords[i].y(),
-                      nullPoint.x() + ratioHeight * uavCoords[i].x());
-        screenPoints.push_back(point);
-    }
-    painter.save();
-    painter.setPen(QPen(Qt::blue, 2));
-    for (int i = 0; i < uavCoords.count() - 1; ++i)
-    {
-        painter.drawLine(uavCoords[i], uavCoords[i + 1]);
-    }
-    painter.restore();
-}
-
-
 void MainWindow::printTelemetry()
 {
-    ui->yawLabel->setText(QString::number(telemetry.yaw, 'f', 2));
-    ui->magneticYawLabel->setText(QString::number(telemetry.magneticYaw, 'f', 2));
-    ui->directionLabel->setText(QString::number(telemetry.direction, 'f', 2));
-    ui->gscDistanceLabel->setText(QString::number(telemetry.gcsDistance, 'f', 2));
-    ui->timeLabel->setText(QString::number(telemetry.time));
+    Telemetry convergenceTelem = convergenceTelemetries.count() > 0 ? convergenceTelemetries.last() : Telemetry();
+//    QString::number(telemetry.yaw, 'f', 2) +
+    ui->yawLabel->setText(getString(telemetry.yaw, convergenceTelem.yaw));
+    ui->magneticYawLabel->setText(getString(telemetry.magneticYaw, convergenceTelem.magneticYaw));
+    ui->directionLabel->setText(getString(telemetry.direction, convergenceTelem.direction));
+    ui->gscDistanceLabel->setText(getString(telemetry.gcsDistance, convergenceTelem.gcsDistance));
+    ui->timeLabel->setText(getString(telemetry.time, convergenceTelem.time));
+    ui->navigationModeLabel->setText(getNavigationModeDescription(telemetry.navigationMode)
+                                     + " | "
+                                     + getNavigationModeDescription(convergenceTelem.navigationMode));
+    ui->airSpeedLabel->setText(getString(telemetry.airSpeed, convergenceTelem.airSpeed));
+    ui->convergenceSpeedLabel->setText(getString(telemetry.convergenceSpeed, convergenceTelem.convergenceSpeed));
+    ui->ratioSpeedLabel->setText(getString(telemetry.convergenceRatio, convergenceTelem.convergenceRatio));
+    ui->latitudeLabel->setText(getString(telemetry.latitude, convergenceTelem.latitude, 4));
+    ui->longitudeLabel->setText(getString(telemetry.longitude, convergenceTelem.longitude, 4));
+    ui->packetIdLabel->setText(getString(telemetry.packetId, convergenceTelem.packetId));
+}
+
+QString MainWindow::getString(double v1, double v2, int presition)
+{
+    return QString("%1 | %2").arg(v1, 5, 'f', presition, QChar('0')).arg(v2, 5, 'f', presition, QChar('0'));
+}
+
+QString MainWindow::getString(qint64 v1, qint64 v2)
+{
+    return QString("%1 | %2").arg(v1).arg(v2);
+}
+
+QString MainWindow::getString(int v1, int v2)
+{
+    return QString("%1 | %2").arg(v1).arg(v2);
+}
+
+QString MainWindow::getNavigationModeDescription(int mode)
+{
     QString navigationMode;
-    switch (telemetry.navigationMode)
+    switch (mode)
     {
     case 0:
         navigationMode = "GPS only";
@@ -269,11 +256,5 @@ void MainWindow::printTelemetry()
         navigationMode = "Unknown";
         break;
     }
-    ui->navigationModeLabel->setText(navigationMode);
-    ui->airSpeedLabel->setText(QString::number(telemetry.airSpeed, 'f', 2));
-    ui->convergenceSpeedLabel->setText(QString::number(telemetry.convergenceSpeed, 'f', 2));
-    ui->ratioSpeedLabel->setText(QString::number(telemetry.convergenceRatio, 'f', 2));
-    ui->latitudeLabel->setText(QString::number(telemetry.latitude));
-    ui->longitudeLabel->setText(QString::number(telemetry.longitude));
-    ui->packetIdLabel->setText(QString::number(telemetry.packetId));
+    return navigationMode;
 }

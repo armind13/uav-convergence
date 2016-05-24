@@ -5,6 +5,7 @@
 #include <QList>
 
 #include "Telemetry.h"
+#include "ConvergenceCalculator.h"
 
 class DataModel : public QObject
 {
@@ -14,16 +15,16 @@ public:
     void loadTelemetry(const QString& pathToFile);
     void getNextTelemetry(Telemetry& telemetry, int& progress);
     void reseTelemetryIndex();
-    void getMapLimits(double& minLatitude, double& maxLatitude, double& minLongitude, double& maxLongitude);
+    bool getConvergenceTelemetry(Telemetry& telemetry) const;
 signals:
     void parseProgressChanged(int);
 public slots:
 private:
     int index;
     bool dataFound;
-    double minLatitude, maxLatitude, minLongitude, maxLongitude;
     QList<Telemetry> rawTelemetry;
     QList<Telemetry> closingTelemetry;
+    ConvergenceCalculator convergenceCalculator;
 
     static Telemetry parseStringToTelemetry(const QString& in);
     static float getFloatParam(const QStringList& in, int index);

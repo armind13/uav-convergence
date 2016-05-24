@@ -22,9 +22,8 @@ public:
     void setEnabledFileLoading(bool enable);
     void setEnabledPlayingTelenetry(bool enable);
     void setEnabledStopPlayingTelemetry(bool enable);
-    void showTelemetry(const Telemetry& telemetry);
+    void showTelemetry(const Telemetry& telemetry, const Telemetry& convergenceTelemetries);
     void showProgress(int progress);
-    void setMapLimits(double minLatitude, double maxLatitude, double minLongitude, double maxLongitude);
     ~MainWindow();
 
 signals:
@@ -49,18 +48,19 @@ private:
     QPixmap airplanePixmap;
     QPixmap yawScalePixmap;
     bool isReachedDistinguish;
-    QList<Telemetry> convergenceTelemetry;
-    QList<QPointF> uavCoords;
-    double minLatitude, maxLatitude, minLongitude, maxLongitude, ratioHeight, ratioWidth;
+    QList<Telemetry> convergenceTelemetries;
 
     QRectF getDrawingArea() const;
     void drawYawScale(QPainter& painter, const QPointF& center);
     void drawAirplane(QPainter& painter, const QPointF& center);
     void drawYaw(QPainter& painter, const QPointF& center, qreal radius);
     void drawConvergenceSpeed(QPainter& painter, const QPointF& center, qreal radius);
-    void drawTrack(QPainter& painter);
     void printTelemetry();
     void calculateRatios();
+    static QString getString(double v1, double v2, int presition = 2);
+    static QString getString(qint64 v1, qint64 v2);
+    static QString getString(int v1, int v2);
+    static QString getNavigationModeDescription(int mode);
 };
 
 #endif // MAINWINDOW_H

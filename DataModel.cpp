@@ -8,12 +8,9 @@ DataModel::DataModel(QObject* parent) :
     QObject(parent)
     ,index(0)
     ,dataFound(false)
-    ,minLatitude(100.0)
-    ,maxLatitude(0.0)
-    ,minLongitude(100.0)
-    ,maxLongitude(0.0)
     ,rawTelemetry()
     ,closingTelemetry()
+    ,convergenceCalculator()
 {    
 }
 
@@ -42,13 +39,6 @@ void DataModel::loadTelemetry(const QString& pathToFile)
     {
         auto line = in.readLine();
         Telemetry telemetry = parseStringToTelemetry(line);
-        if (qAbs(telemetry.latitude - 0.0) > 0.0001 &&  qAbs(telemetry.longitude - 0.0) > 0.0001)
-        {
-            minLatitude = qMin(minLatitude, telemetry.latitude);
-            maxLatitude = qMax(maxLatitude, telemetry.latitude);
-            minLongitude = qMin(minLongitude, telemetry.longitude);
-            maxLongitude = qMax(maxLongitude, telemetry.longitude);
-        }
 
         telemetry.packetId = rawTelemetry.size() + 1;
         rawTelemetry.push_back(telemetry);
@@ -77,19 +67,7 @@ void DataModel::getNextTelemetry(Telemetry& telemetry, int& progress)
     {
         telemetry = rawTelemetry[index];
         progress = (index / (float)rawTelemetry.size()) * 100.0f;
-        const int indexOffset = 1000;
-        if (index > indexOffset)
-        {
-            float distance = rawTelemetry[index].gcsDistance - rawTelemetry[index - indexOffset].gcsDistance;
-            float time = (rawTelemetry[index].time - rawTelemetry[index - indexOffset].time) / 1000.0f;
-            telemetry.convergenceSpeed = -(distance / time) * 3.6f;
-            telemetry.convergenceRatio = qAbs(telemetry.convergenceSpeed / telemetry.airSpeed);
-            telemetry.isConvergenceDataExist = true;
-            if (telemetry.convergenceRatio > 1.0f)
-            {
-                telemetry.convergenceRatio = 1.0f;
-            }
-        }
+        convergenceCalculator.add(telemetry);
         ++index;
     }
     else
@@ -104,13 +82,9 @@ void DataModel::reseTelemetryIndex()
     index = 0;
 }
 
-void DataModel::getMapLimits(double& minLatitude, double& maxLatitude,
-                             double& minLongitude, double& maxLongitude)
+bool DataModel::getConvergenceTelemetry(Telemetry& telemetry) const
 {
-    minLatitude = this->minLatitude;
-    maxLatitude = this->maxLatitude;
-    minLongitude = this->minLongitude;
-    maxLongitude = this->maxLongitude;
+    return convergenceCalculator.getConvergence(telemetry);
 }
 
 Telemetry DataModel::parseStringToTelemetry(const QString& in)

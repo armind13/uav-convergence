@@ -19,7 +19,7 @@ public:
         ,convergenceSpeed(0.0)
         ,convergenceRatio(0.0)
         ,isConvergenceDataExist(false)
-        ,packetId(0)
+        ,packetId(-1)
     {
     }
     double magneticYaw;
