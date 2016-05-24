@@ -19,6 +19,13 @@ MainWindow::MainWindow(QWidget* parent) :
     ,yawScalePixmap()
     ,isReachedDistinguish(false)
     ,convergenceTelemetry()
+    ,uavCoords()
+    ,minLatitude(0.0)
+    ,maxLatitude(100.0)
+    ,minLongitude(0.0)
+    ,maxLongitude(100.0)
+    ,ratioHeight(1.0)
+    ,ratioWidth(1.0)
 {
     ui->setupUi(this);
     model = new DataModel(this);
@@ -45,6 +52,8 @@ void MainWindow::setEnabledStopPlayingTelemetry(bool enable)
 void MainWindow::showTelemetry(const Telemetry& telemetry)
 {
     this->telemetry = telemetry;
+    QPointF point(telemetry.latitude, telemetry.longitude);
+    uavCoords.push_back(point);
     if (telemetry.isConvergenceDataExist)
     {
         convergenceTelemetry.push_back(telemetry);
@@ -80,6 +89,15 @@ void MainWindow::showProgress(int progress)
     ui->progressBar->setValue(progress);
 }
 
+void MainWindow::setMapLimits(double minLatitude, double maxLatitude, double minLongitude, double maxLongitude)
+{
+    this->minLatitude = minLatitude;
+    this->maxLatitude = maxLatitude;
+    this->minLongitude = minLongitude;
+    this->maxLongitude = maxLongitude;
+    calculateRatios();
+}
+
 MainWindow::~MainWindow()
 {
     delete ui;
@@ -91,9 +109,24 @@ void MainWindow::paintEvent(QPaintEvent* event)
     printTelemetry();
     QRectF drawingArea = getDrawingArea();
     QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
     drawYawScale(painter, drawingArea.center());
     drawAirplane(painter, drawingArea.center());
-    drawMagneticYaw(painter, drawingArea.center(), yawScalePixmap.width() / 2.0);
+    drawYaw(painter, drawingArea.center(), yawScalePixmap.width() / 2.0);
+    drawTrack(painter);
+}
+
+void MainWindow::calculateRatios()
+{
+    int sideLength = qMin(ui->mapArea->geometry().width(), ui->mapArea->geometry().height());
+    ratioHeight = sideLength / (maxLatitude - minLatitude);
+    ratioWidth = sideLength / (maxLongitude- minLongitude);
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event)
+{
+    QMainWindow::resizeEvent(event);
+    calculateRatios();
 }
 
 void MainWindow::on_loadButton_clicked()
@@ -141,13 +174,13 @@ void MainWindow::drawAirplane(QPainter& painter, const QPointF& center)
     painter.resetTransform();
 }
 
-void MainWindow::drawMagneticYaw(QPainter& painter, const QPointF& center, qreal radius)
+void MainWindow::drawYaw(QPainter& painter, const QPointF& center, qreal radius)
 {
     painter.save();
     painter.setPen(QPen(Qt::red, 2));
-    float magneticYaw = telemetry.magneticYaw - 90.0f;
-    QPointF end(center.x() + cos(qDegreesToRadians(magneticYaw)) * radius,
-                center.y() + sin(qDegreesToRadians(magneticYaw)) * radius);
+    float yaw = telemetry.yaw - 90.0f;
+    QPointF end(center.x() + cos(qDegreesToRadians(yaw)) * radius,
+                center.y() + sin(qDegreesToRadians(yaw)) * radius);
     painter.drawLine(center, end);
     painter.restore();
 }
@@ -189,6 +222,26 @@ void MainWindow::drawConvergenceSpeed(QPainter& painter, const QPointF& center, 
 
     painter.restore();
 }
+
+void MainWindow::drawTrack(QPainter& painter)
+{
+    QList<QPointF> screenPoints;
+    QPoint nullPoint = ui->mapArea->geometry().bottomLeft();
+    for (int i = 0; i < uavCoords.count(); ++i)
+    {
+        QPointF point(nullPoint.y() - ratioWidth * uavCoords[i].y(),
+                      nullPoint.x() + ratioHeight * uavCoords[i].x());
+        screenPoints.push_back(point);
+    }
+    painter.save();
+    painter.setPen(QPen(Qt::blue, 2));
+    for (int i = 0; i < uavCoords.count() - 1; ++i)
+    {
+        painter.drawLine(uavCoords[i], uavCoords[i + 1]);
+    }
+    painter.restore();
+}
+
 
 void MainWindow::printTelemetry()
 {

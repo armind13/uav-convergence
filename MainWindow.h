@@ -24,6 +24,7 @@ public:
     void setEnabledStopPlayingTelemetry(bool enable);
     void showTelemetry(const Telemetry& telemetry);
     void showProgress(int progress);
+    void setMapLimits(double minLatitude, double maxLatitude, double minLongitude, double maxLongitude);
     ~MainWindow();
 
 signals:
@@ -33,6 +34,7 @@ signals:
 
 protected:
     void paintEvent(QPaintEvent* event);
+    void resizeEvent(QResizeEvent* event);
 
 private slots:
     void on_loadButton_clicked();
@@ -48,13 +50,17 @@ private:
     QPixmap yawScalePixmap;
     bool isReachedDistinguish;
     QList<Telemetry> convergenceTelemetry;
+    QList<QPointF> uavCoords;
+    double minLatitude, maxLatitude, minLongitude, maxLongitude, ratioHeight, ratioWidth;
 
     QRectF getDrawingArea() const;
     void drawYawScale(QPainter& painter, const QPointF& center);
     void drawAirplane(QPainter& painter, const QPointF& center);
-    void drawMagneticYaw(QPainter& painter, const QPointF& center, qreal radius);
+    void drawYaw(QPainter& painter, const QPointF& center, qreal radius);
     void drawConvergenceSpeed(QPainter& painter, const QPointF& center, qreal radius);
+    void drawTrack(QPainter& painter);
     void printTelemetry();
+    void calculateRatios();
 };
 
 #endif // MAINWINDOW_H

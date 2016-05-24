@@ -38,8 +38,11 @@ void MainPresenter::timerEvent(QTimerEvent* event)
 
 void MainPresenter::loadTelemetry(const QString& filePath)
 {
-    model->loadTelemetry(filePath);
     view->setEnabledFileLoading(false);
+    model->loadTelemetry(filePath);
+    double minLat, maxLat, minLon, maxLon;
+    model->getMapLimits(minLat, maxLat, minLon, maxLon);
+    view->setMapLimits(minLat, maxLat, minLon, maxLon);
 }
 
 void MainPresenter::notifyAboutProgress(int progress)

@@ -8,6 +8,10 @@ DataModel::DataModel(QObject* parent) :
     QObject(parent)
     ,index(0)
     ,dataFound(false)
+    ,minLatitude(100.0)
+    ,maxLatitude(0.0)
+    ,minLongitude(100.0)
+    ,maxLongitude(0.0)
     ,rawTelemetry()
     ,closingTelemetry()
 {    
@@ -38,6 +42,14 @@ void DataModel::loadTelemetry(const QString& pathToFile)
     {
         auto line = in.readLine();
         Telemetry telemetry = parseStringToTelemetry(line);
+        if (qAbs(telemetry.latitude - 0.0) > 0.0001 &&  qAbs(telemetry.longitude - 0.0) > 0.0001)
+        {
+            minLatitude = qMin(minLatitude, telemetry.latitude);
+            maxLatitude = qMax(maxLatitude, telemetry.latitude);
+            minLongitude = qMin(minLongitude, telemetry.longitude);
+            maxLongitude = qMax(maxLongitude, telemetry.longitude);
+        }
+
         telemetry.packetId = rawTelemetry.size() + 1;
         rawTelemetry.push_back(telemetry);
         readBytesCount += line.length();
@@ -90,6 +102,15 @@ void DataModel::getNextTelemetry(Telemetry& telemetry, int& progress)
 void DataModel::reseTelemetryIndex()
 {
     index = 0;
+}
+
+void DataModel::getMapLimits(double& minLatitude, double& maxLatitude,
+                             double& minLongitude, double& maxLongitude)
+{
+    minLatitude = this->minLatitude;
+    maxLatitude = this->maxLatitude;
+    minLongitude = this->minLongitude;
+    maxLongitude = this->maxLongitude;
 }
 
 Telemetry DataModel::parseStringToTelemetry(const QString& in)
