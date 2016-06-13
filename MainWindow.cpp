@@ -57,7 +57,7 @@ void MainWindow::storePositionParams()
                                / (longitudeMinMax.second - longitudeMinMax.first);
 
     traceCoordinatesPercentsOffsets.push_back( qMakePair(latitudePercent, longitudePercent));
-    if (traceCoordinatesPercentsOffsets.size() > 1000)
+    if (traceCoordinatesPercentsOffsets.size() > 10000)
     {
         traceCoordinatesPercentsOffsets.pop_front();
     }
@@ -97,16 +97,15 @@ void MainWindow::showTelemetry(const Telemetry& telemetry, const Telemetry& conv
         {
             convergenceTelemetries.push_back(convergenceTelemetry);
         }
-        if (convergenceTelemetries.size() > 20)
+        if (convergenceTelemetries.size() > 150)
         {
-            float delta = qAbs(convergenceTelemetries.first().magneticYaw
-                               - convergenceTelemetries.last().magneticYaw);
+            float delta = qAbs(convergenceTelemetries.first().yaw - convergenceTelemetries.last().yaw);
             const float distinguishValue = 15.0f;
             bool minimalDistinguish = delta < distinguishValue;
             if ( ! minimalDistinguish)
             {
-                float less = convergenceTelemetries.first().magneticYaw;
-                float more = convergenceTelemetries.last().magneticYaw;
+                float less = convergenceTelemetries.first().yaw;
+                float more = convergenceTelemetries.last().yaw;
                 if (less > more)
                 {
                     std::swap(less, more);
@@ -222,7 +221,7 @@ void MainWindow::drawYaw(QPainter& painter)
 {
     painter.save();    
     const qreal radius = yawScalePixmap.width() / 2.0;
-    painter.setPen(QPen(Qt::red, 2));
+    painter.setPen(QPen(Qt::blue, 2));
     float yaw = telemetry.yaw - 90.0f;
     QPointF end(pfdArea.center().x() + cos(qDegreesToRadians(yaw)) * radius,
                 pfdArea.center().y() + sin(qDegreesToRadians(yaw)) * radius);

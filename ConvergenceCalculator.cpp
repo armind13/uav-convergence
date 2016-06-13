@@ -1,7 +1,7 @@
 #include "ConvergenceCalculator.h"
 
 ConvergenceCalculator::ConvergenceCalculator() :
-    minCount(500)
+    minCount(100)
     ,telemetries()
 {
 }
