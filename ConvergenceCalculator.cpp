@@ -2,17 +2,28 @@
 
 ConvergenceCalculator::ConvergenceCalculator() :
     minCount(100)
+    ,preBufferCount(3)
     ,telemetries()
+    ,prebuffer()
 {
 }
 
 void ConvergenceCalculator::add(const Telemetry& telemetry)
 {
-    telemetries.push_back(telemetry);
-    if (telemetries.count() > minCount)
+    if (prebuffer.count() == preBufferCount)
     {
-        telemetries.pop_front();
+        Telemetry result = prebuffer[preBufferCount / 2];
+        double distance(0.0);
+        for (auto telemetry : prebuffer)
+        {
+            distance += telemetry.gcsDistance;
+        }
+        distance /= preBufferCount;
+        result.gcsDistance = distance;
+        telemetries.push_back(result);
+        prebuffer.pop_front();
     }
+    prebuffer.push_back(telemetry);
 }
 
 bool ConvergenceCalculator::getConvergence(Telemetry& telemetry) const

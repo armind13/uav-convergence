@@ -12,8 +12,10 @@ public:
     bool getConvergence(Telemetry& telemetry) const;
 
 private:
-    int minCount;
+    const int minCount;
+    const int preBufferCount;
     QList<Telemetry> telemetries;
+    QList<Telemetry> prebuffer;
 };
 
 #endif // CONVERGENCECALCULATOR_H
