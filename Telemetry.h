@@ -2,6 +2,9 @@
 #define TELEMETRY_H
 
 #include <QtGlobal>
+#include <QPair>
+
+typedef QPair<double, double> MinMaxValues;
 
 class Telemetry
 {
@@ -16,6 +19,8 @@ public:
         ,longitude(0.0)
         ,navigationMode(-1)
         ,direction(0.0)
+        ,latitudePlain(0.0)
+        ,longitudePlain(0.0)
         ,convergenceSpeed(0.0)
         ,convergenceRatio(0.0)
         ,isConvergenceDataExist(false)
@@ -31,6 +36,8 @@ public:
     double longitude;
     int navigationMode;
     double direction;
+    double latitudePlain;
+    double longitudePlain;
     double convergenceSpeed;
     double convergenceRatio;
     bool isConvergenceDataExist;

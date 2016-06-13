@@ -16,18 +16,23 @@ public:
     void getNextTelemetry(Telemetry& telemetry, int& progress);
     void reseTelemetryIndex();
     bool getConvergenceTelemetry(Telemetry& telemetry) const;
+    void getMinMaxValues(MinMaxValues& latitude, MinMaxValues& longitude) const;
+    void setPacketIndex(int index);
+
 signals:
     void parseProgressChanged(int);
-public slots:
+
+
 private:
     int index;
     bool dataFound;
     QList<Telemetry> rawTelemetry;
     QList<Telemetry> closingTelemetry;
     ConvergenceCalculator convergenceCalculator;
+    MinMaxValues latitudeMinMax, longitudeMinMax;
 
     static Telemetry parseStringToTelemetry(const QString& in);
-    static float getFloatParam(const QStringList& in, int index);
+    static double getDoubleParam(const QStringList& in, int index);
 };
 
 #endif // DATAMODEL_H

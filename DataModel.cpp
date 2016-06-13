@@ -11,6 +11,8 @@ DataModel::DataModel(QObject* parent) :
     ,rawTelemetry()
     ,closingTelemetry()
     ,convergenceCalculator()
+    ,latitudeMinMax(0.0, 0.0)
+    ,longitudeMinMax(0.0, 0.0)
 {    
 }
 
@@ -39,6 +41,19 @@ void DataModel::loadTelemetry(const QString& pathToFile)
     {
         auto line = in.readLine();
         Telemetry telemetry = parseStringToTelemetry(line);
+        if (rawTelemetry.isEmpty())
+        {
+            latitudeMinMax.first = latitudeMinMax.second = telemetry.latitudePlain;
+            longitudeMinMax.first = longitudeMinMax.second = telemetry.longitudePlain;
+        }
+        else
+        {
+            latitudeMinMax.first = qMin(latitudeMinMax.first, telemetry.latitudePlain);
+            latitudeMinMax.second = qMax(latitudeMinMax.second, telemetry.latitudePlain);
+
+            longitudeMinMax.first = qMin(longitudeMinMax.first, telemetry.longitudePlain);
+            longitudeMinMax.second = qMax(longitudeMinMax.second, telemetry.longitudePlain);
+        }
 
         telemetry.packetId = rawTelemetry.size() + 1;
         rawTelemetry.push_back(telemetry);
@@ -87,35 +102,55 @@ bool DataModel::getConvergenceTelemetry(Telemetry& telemetry) const
     return convergenceCalculator.getConvergence(telemetry);
 }
 
+void DataModel::getMinMaxValues(MinMaxValues& latitude, MinMaxValues& longitude) const
+{
+    latitude = latitudeMinMax;
+    longitude = longitudeMinMax;
+}
+
+void DataModel::setPacketIndex(int index)
+{
+    if (index >= 0 && index < rawTelemetry.count())
+    {
+        this->index = index;
+    }
+    else
+    {
+        this->index = 0;
+    }
+}
+
 Telemetry DataModel::parseStringToTelemetry(const QString& in)
 {
-    QStringList telemetryParams = in.split(QChar(' '));
+    QString simplifiedStr = in.simplified();
+    QStringList telemetryParams = simplifiedStr.split(QChar(' '));
     Telemetry result;
-    result.magneticYaw = getFloatParam(telemetryParams, 0);
-    result.yaw = getFloatParam(telemetryParams, 1);
-    result.gcsDistance = getFloatParam(telemetryParams, 2);
-    result.airSpeed = getFloatParam(telemetryParams, 3);
+    result.magneticYaw = getDoubleParam(telemetryParams, 0);
+    result.yaw = getDoubleParam(telemetryParams, 1);
+    result.gcsDistance = getDoubleParam(telemetryParams, 2);
+    result.airSpeed = getDoubleParam(telemetryParams, 3);
     if (telemetryParams.count() > 4)
     {
         result.time = telemetryParams[4].toULongLong();
     }
-    result.latitude = getFloatParam(telemetryParams, 5);
-    result.longitude = getFloatParam(telemetryParams, 6);
+    result.latitude = getDoubleParam(telemetryParams, 5);
+    result.longitude = getDoubleParam(telemetryParams, 6);
     if (telemetryParams.count() > 7)
     {
         result.navigationMode = telemetryParams[7].toInt();
     }
-    result.direction = getFloatParam(telemetryParams, 8);
+    result.latitudePlain = getDoubleParam(telemetryParams, 8);
+    result.longitudePlain = getDoubleParam(telemetryParams, 9);
 
     return result;
 }
 
-float DataModel::getFloatParam(const QStringList& in, int index)
+double DataModel::getDoubleParam(const QStringList& in, int index)
 {
-    float result(0.0f);
+    double result(0.0);
     if (in.count() > index)
     {
-        result = in[index].toFloat();
+        result = in[index].toDouble();
     }
     return result;
 }

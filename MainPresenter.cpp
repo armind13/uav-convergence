@@ -17,7 +17,7 @@ MainPresenter::MainPresenter(DataModel* model, ITelemetryViewer* view, QObject* 
     if (nullptr != viewObject)
     {
         connect(viewObject, SIGNAL(fileSelected(const QString&)), this, SLOT(loadTelemetry(const QString&)));
-        connect(viewObject, SIGNAL(needStartPlaying()), this, SLOT(startPlaying()));
+        connect(viewObject, SIGNAL(needStartPlaying(int)), this, SLOT(startPlaying(int)));
         connect(viewObject, SIGNAL(needStopPlaying()), this, SLOT(stopPlaying()));
     }
 }
@@ -34,6 +34,7 @@ void MainPresenter::timerEvent(QTimerEvent* event)
     int progress(0);
     model->getNextTelemetry(telemetry, progress);
     model->getConvergenceTelemetry(convergenceTelemetry);
+    // TODO: подумать над тем, как убрать от дублирования полей телеметрии
     view->showTelemetry(telemetry, convergenceTelemetry);
     view->showProgress(progress);
 }
@@ -53,13 +54,17 @@ void MainPresenter::notifyAboutProgress(int progress)
     }
 }
 
-void MainPresenter::startPlaying()
+void MainPresenter::startPlaying(int packetIndex)
 {
     if (0 == timerId)
     {
         timerId = this->startTimer(timerFrequencyMs);
         view->setEnabledPlayingTelenetry(false);
         view->setEnabledStopPlayingTelemetry(true);
+        MinMaxValues lat, lon;
+        model->getMinMaxValues(lat, lon);
+        model->setPacketIndex(packetIndex);
+        view->setMinMaxPositionValues(lat, lon);
     }
 }
 

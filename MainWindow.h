@@ -24,11 +24,12 @@ public:
     void setEnabledStopPlayingTelemetry(bool enable);
     void showTelemetry(const Telemetry& telemetry, const Telemetry& convergenceTelemetries);
     void showProgress(int progress);
+    void setMinMaxPositionValues(const MinMaxValues& latitude, const MinMaxValues& longitude);
     ~MainWindow();
 
 signals:
     void fileSelected(const QString& filePath);
-    void needStartPlaying();
+    void needStartPlaying(int packetIndex);
     void needStopPlaying();
 
 protected:
@@ -49,18 +50,27 @@ private:
     QPixmap yawScalePixmap;
     bool isReachedDistinguish;
     QList<Telemetry> convergenceTelemetries;
+    // latitude - first, longitude - second
+    QList<QPair<double, double> > traceCoordinatesPercentsOffsets;
+    MinMaxValues latitudeMinMax, longitudeMinMax;
+    QRect mapArea, pfdArea;
 
-    QRectF getDrawingArea() const;
-    void drawYawScale(QPainter& painter, const QPointF& center);
-    void drawAirplane(QPainter& painter, const QPointF& center);
-    void drawYaw(QPainter& painter, const QPointF& center, qreal radius);
-    void drawConvergenceSpeed(QPainter& painter, const QPointF& center, qreal radius);
+    void calculatePfdDrawingArea();
+    void drawYawScale(QPainter& painter);
+    void drawAirplane(QPainter& painter);
+    void drawYaw(QPainter& painter);
+    void drawConvergenceSpeed(QPainter& painter);
+    void drawTrace(QPainter& painter);
     void printTelemetry();
-    void calculateRatios();
     static QString getString(double v1, double v2, int presition = 2);
     static QString getString(qint64 v1, qint64 v2);
     static QString getString(int v1, int v2);
-    static QString getNavigationModeDescription(int mode);
+    static QString getNavigationModeDescription(int mode);    
+    void storePositionParams();
+    void calculateMapAreaSize();
+    double getLongitudePx(double percent) const;
+    double getLatitudePx(double percent) const;
+    QPointF getMapPoint(double longitudePercent, double latitudePercent) const;
 };
 
 #endif // MAINWINDOW_H

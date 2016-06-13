@@ -17,7 +17,7 @@ protected:
 private slots:
     void loadTelemetry(const QString& filePath);
     void notifyAboutProgress(int progress);
-    void startPlaying();
+    void startPlaying(int packetIndex);
     void stopPlaying();
 
 private:
