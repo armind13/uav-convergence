@@ -12,16 +12,19 @@ void ConvergenceCalculator::add(const Telemetry& telemetry)
 {
     if (prebuffer.count() == preBufferCount)
     {
-        const int middleIndex = preBufferCount / 2;
-        Telemetry result = prebuffer[middleIndex];
-        QList<double> distances;
+        Telemetry result = prebuffer[preBufferCount / 2];
+        double distance(0.0);
         for (auto telemetry : prebuffer)
         {
-            distances.push_back(telemetry.gcsDistance);
+            distance += telemetry.gcsDistance;
         }
-        qSort(distances);
-        result.gcsDistance = distances[middleIndex];
+        distance /= preBufferCount;
+        result.gcsDistance = distance;
         telemetries.push_back(result);
+        if (telemetries.count() > minCount)
+        {
+            telemetries.pop_front();
+        }
         prebuffer.pop_front();
     }
     prebuffer.push_back(telemetry);
