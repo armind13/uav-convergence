@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget* parent) :
     presenter = new MainPresenter(model, this, this);
     airplanePixmap.load(":/images/airplane.png");
     yawScalePixmap.load(":/images/yaw_scale.png");
+    setWindowTitle(tr("Сглаживание с помощью медианы - 23 элемента"));
 }
 
 void MainWindow::setEnabledFileLoading(bool enable)
